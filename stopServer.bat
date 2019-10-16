@@ -1,11 +1,37 @@
 @echo off
-echo test1
-echo %PATH%
-cd "C:\Users\Sowmya\Desktop\Hareen\DevOps\apache-tomcat-9.0.17-windows-x64\bin"
-REM setx JAVA_HOME "C:\Program Files\Java\jdk1.8.0_201"
-echo testing
-set JAVA_HOME="C:\ProgramFiles\Java\jdk1.8.0_201"
-set JRE_HOME="C:\Program Files\Java\jre1.8.0_201"
-echo %JAVA_HOME%
-set PATH="%PATH%;%JAVA_HOME%\bin"
-shutdown.bat
+setlocal enabledelayedexpansion
+set %1
+set %2
+set %3
+set %4
+set %5
+set %6
+REM echo in stopServer.bat file
+REM echo serverName=%serverName%
+REM echo serverUserName=%serverUserName%
+REM echo serverPassword=%serverPassword%
+REM echo serviceName=%serviceName%
+
+REM echo canRestartServer=%canRestartServer%
+if %canRestartServer%==true (
+echo "stopping server..."
+net use s: %serverName% /u:%serverUserName% %ServerUserPwd%
+
+set I=0
+set L=-1
+:l
+if "!serverName:~%I%,1!"=="" goto ld
+if "!serverName:~%I%,1!"=="\" set L=%I%
+set /a I+=1
+goto l
+:ld
+echo %L%
+echo %serverName:~0,17%
+sc %serverName:~0,17% stop %serviceName%
+
+REM sc \\%serverName% stop %serviceName
+net use s: /delete
+)
+if %canRestartServer%==false (
+echo "Server restart not requested..."
+)

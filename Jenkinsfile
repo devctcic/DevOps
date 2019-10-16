@@ -4,6 +4,7 @@ pipeline {
     stage('Print pipeline parameters') {
       steps {
         script {
+          /*
           println "gitURL: ${params.gitURL}"
           println "Build Number: ${params.BuildNum}"
           println "Is Restart Required: ${params.CanRestartServer}"
@@ -11,10 +12,16 @@ pipeline {
           println "Database Server Name: ${params.DBServerName}"
           println "Database User Name: ${params.DBUserName}"
           println "Database Password: ${params.DBUserPwd}"
+          println "Server User Name: ${params.ServerUserName}"
+          println "Server Password: ${params.ServerUserPwd}"
+          println "App Server User Name: ${params.AppServerUserName}"
+          println "App Server Password: ${params.AppServerUserPwd}"
+          
           println "Implementation Scripts Location: ${params.ImplScriptsLoc}"
           println "Implementation Scripts: ${params.ImplScripts}"
           println "Rollback Scripts Location: ${params.RBScriptsLoc}"
           println "Rollback Scripts: ${params.RBScripts}"
+          */
           buildURL="${params.gitURL}/${params.BuildNum}.git"
           println "${buildURL}"
         }
@@ -24,35 +31,34 @@ pipeline {
     stage('Checkout from git') {
       steps {
         checkout([$class: 'GitSCM', 
-                        branches: [[name: '*/master']], 
-                        doGenerateSubmoduleConfigurations: false, 
-                        extensions: [[$class: 'RelativeTargetDirectory', 
-                            relativeTargetDir: 'BuildDir']], 
-                        submoduleCfg: [], 
-                        userRemoteConfigs: [[url: "${buildURL}"]]])
+                                                                                        branches: [[name: '*/master']], 
+                                                                                        doGenerateSubmoduleConfigurations: false, 
+                                                                                        extensions: [[$class: 'RelativeTargetDirectory', 
+                                                                                            relativeTargetDir: 'BuildDir']], 
+                                                                                        submoduleCfg: [], 
+                                                                                        userRemoteConfigs: [[url: "${buildURL}"]]])
       }
     }
     stage('Execute Scripts') {
       steps {
-        bat 'ExecuteScripts.bat DBUserName="${params.DBUserName}" DBUserPwd="${params.DBUserPwd}"'
-      }
-    }
-    stage('Deploy app to tomcat') {
-      steps {
-         bat 'DeployApp.bat' 
+        bat 'ExecuteImplScripts.bat "action=executeScripts" targetEnv="${params.targetEnv}" buildName="${params.BuildNum}" DBUserName="${params.DBUserName}" DBUserPwd="${params.DBUserPwd}" DBServerName="${params.DBServerName}"'
       }
     }
     stage('Stop Server') {
       steps {
-         bat 'stopServer.bat' 
+        bat 'actionWrapper.bat "action=stopServer" targetEnv="${params.targetEnv}" buildName="${params.BuildNum}" serverUserName="${params.ServerUserName}" serverPassword="${params.ServerUserPwd}" canRestartServer="${params.CanRestartServer}"'
       }
     }
     stage('Start Server') {
       steps {
-         bat 'startServer.bat' 
+        bat 'actionWrapper.bat "action=startServer" targetEnv="${params.targetEnv}" buildName="${params.BuildNum}" serverUserName="${params.ServerUserName}" serverPassword="${params.ServerUserPwd}" canRestartServer="${params.CanRestartServer}"'
       }
     }
-
+    stage('Deploy App') {
+      steps {
+        bat 'actionWrapper.bat "action=deployApp" targetEnv="${params.targetEnv}" buildName="${params.BuildNum}" appServerUserName="${params.AppServerUserName}" appServerUserPwd="${params.AppServerUserPwd}"'
+      }
+    }
   }
   parameters {
     string(name: 'gitURL', defaultValue: 'gitURL', description: 'git Repo URL')
@@ -61,14 +67,13 @@ pipeline {
     choice(name: 'targetEnv', choices: '''DEV
 SYS
 UAT
-PERF
-PROD''', description: 'Target Environment')
+PRD''', description: 'Target Environment')
     string(name: 'DBServerName', defaultValue: 'localhost', description: 'Database Server Name Eg mydesktop')
     string(name: 'DBUserName', defaultValue: 'demouser', description: 'Database User Name Eg demouser')
     string(name: 'DBUserPwd', defaultValue: 'demopwd', description: 'Database User Password Eg demopwd')
-    string(name: 'ImplScriptsLoc', defaultValue: 'ImplScriptsLoc', description: 'Implementation Scritps Location')
-    string(name: 'ImplScripts', defaultValue: 'sqlfile1.sql', description: 'Implementation Scripts Eg sqlfile1.sql')
-    string(name: 'RBScriptsLoc', defaultValue: 'RBScriptsLoc', description: 'Rollback Scripts Location')
-    string(name: 'RBScripts', defaultValue: 'sqlfile1.sql', description: 'Rollback Scripts Eg sqlfile1.sql')
+    string(name: 'ServerUserName', defaultValue: 'serveruser', description: 'Server User Name Eg serveruser')
+    string(name: 'ServerUserPwd', defaultValue: 'serverpwd', description: 'Server User Password Eg serverpwd')
+    string(name: 'AppServerUserName', defaultValue: 'appServeruser', description: 'App Server User Name Eg appserveruser')
+    string(name: 'AppServerUserPwd', defaultValue: 'appServerpwd', description: 'App Server User Password Eg appserverpwd')
   }
 }
