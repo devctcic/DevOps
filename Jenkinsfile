@@ -36,7 +36,7 @@ pipeline {
                                                                                         extensions: [[$class: 'RelativeTargetDirectory', 
                                                                                             relativeTargetDir: 'BuildDir']], 
                                                                                         submoduleCfg: [], 
-                                                                                        userRemoteConfigs: [[url: "${buildURL}"]]])
+                                                                                        userRemoteConfigs: [[credentialsId: '6309d56b31f82e876dad729938807852b61f3762', url: "${buildURL}"]]])
       }
     }
     stage('Execute Scripts') {
